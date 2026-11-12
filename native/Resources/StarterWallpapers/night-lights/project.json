@@ -1,0 +1,29 @@
+{
+  "title": "夜航 · 光影",
+  "type": "scene",
+  "file": "scene.json",
+  "general": {
+    "properties": {
+      "shadows": {
+        "type": "bool",
+        "text": "聚光阴影",
+        "value": true
+      },
+      "width": {
+        "type": "slider",
+        "text": "光束范围",
+        "value": 65,
+        "min": 30,
+        "max": 80
+      },
+      "brightness": {
+        "type": "slider",
+        "text": "灯光强度",
+        "value": 2.4,
+        "min": 0,
+        "max": 3
+      }
+    }
+  },
+  "preview": "preview.png"
+}

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Wallpaper Engine Native</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Wallpaper Engine Native 作品</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>io.wallpaper-engine-native.creation</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleExecutable</key>
+	<string>WallpaperEngineNativeHost</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.wallpaper-engine-native.host</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Wallpaper Engine Native</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.216.0</string>
+	<key>CFBundleVersion</key>
+	<string>216</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>读取系统“音乐”当前曲目的歌名、艺人、封面和进度，让壁纸显示媒体信息。不会控制播放，不读取资料库列表，不保存播放历史。</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>用于本机壁纸声音频谱，以及在您明确启用后检测其他应用是否正在播放音频以执行壁纸设置。只在内存计算实时峰值；不使用麦克风，不保存或上传录音。</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Wallpaper Engine Native 作品</string>
+			<key>UTTypeIdentifier</key>
+			<string>io.wallpaper-engine-native.creation</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>wenative</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

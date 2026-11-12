@@ -1,0 +1,17 @@
+# macOS and editor state
+.DS_Store
+.swiftpm/
+DerivedData/
+
+# Local build products and release artifacts
+native/build/
+synchronizer/build/
+out/
+*.app/
+*.dmg
+*.zip
+*.xcarchive
+
+# Interpreted-language caches
+__pycache__/
+*.py[cod]

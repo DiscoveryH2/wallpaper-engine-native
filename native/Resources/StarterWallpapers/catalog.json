@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "wallpapers": [
+    {
+      "id": "night-lights",
+      "revision": "422ff4e5b3d28bb0bb80cc080c5045a009bb9ec371734c11ba222c327e5bdf7a",
+      "title": "夜航 · 光影",
+      "type": "scene",
+      "files": {
+        "materials/probe.json": "033d1e096cf0ac443b83fa64484f3f029e0eb05b050b03a9bc498b741853d3da",
+        "materials/white.tex": "32b265409462f3c385f43d1027ca1573507c746c473666b5a6639da473e9f6b1",
+        "models/plane.mdl": "6681dd8e03c7d9368fc4d0d8c3d88e3ae0e159b58e18a91173570e331db4ea89",
+        "preview.png": "4e7bfa9fd8d6747cfda9cd024efe63cf0ad3340c257a487397e99f91cf34b3c4",
+        "project.json": "fea943e623d7d63855ae87f74eda16b0e20202e3a6d065296440d27ba177198b",
+        "scene.json": "cfe728fab679dffb5bfd64a3cf1ed8030f5fa3d036ee9c8462a72d54e49680c2"
+      }
+    },
+    {
+      "id": "tide",
+      "revision": "ad8c368094caaf55a14db56f1f1cd4c9e56f30f1c7eaf8db07098f48f7474918",
+      "title": "潮汐",
+      "type": "web",
+      "files": {
+        "index.html": "8f49139ba500bb13f43ab493064197f337137987b8a3fb5343f40803c8856187",
+        "preview.png": "8fe24e5ad1af4828a56d5fdab8544893a669548a8b3bda19926a9699afb6ec2e",
+        "project.json": "24fe1feefa28922df158156d485573bb3a0a5f1f9c53313cbb1ad61b2dc2643f"
+      }
+    },
+    {
+      "id": "morning-mist",
+      "revision": "7723392de1deef7aa2bff7ffd3789628811a5bebc9aa9b7db63b123cd46cc274",
+      "title": "晨雾",
+      "type": "video",
+      "files": {
+        "morning-mist.mp4": "c6e14cd7faed63a991c345b2d41fbd56a2a2d25dd30390dd1a53487316676ca7",
+        "preview.png": "4899f0363ee236aa7debca8a13cdb4d5f1930b01ecea01eca5bcb4d3090357dc",
+        "project.json": "3e8ce9ebc675f5714822acab86a079268182d799f59ec945b92b219314471dee"
+      }
+    }
+  ]
+}

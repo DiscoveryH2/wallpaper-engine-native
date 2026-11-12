@@ -1,0 +1,168 @@
+{
+  "camera": {
+    "eye": "0 0 8",
+    "center": "0 0 0",
+    "up": "0 1 0"
+  },
+  "general": {
+    "fov": 50,
+    "nearz": 0.1,
+    "farz": 30,
+    "clearcolor": "0.015 0.025 0.05",
+    "ambientcolor": "0.02 0.025 0.04",
+    "skylightcolor": "0.02 0.02 0.025",
+    "lightconfig": {
+      "spotshadow": 2
+    }
+  },
+  "objects": [
+    {
+      "id": 1,
+      "name": "Receiver",
+      "model": "models/plane.mdl",
+      "origin": "0 0 0",
+      "scale": "6 4 1",
+      "castshadow": false
+    },
+    {
+      "id": 10,
+      "name": "Occluder 1",
+      "model": "models/plane.mdl",
+      "origin": "-1 0 1.2",
+      "scale": "0.45 0.45 1",
+      "angles": "0 0 0.0"
+    },
+    {
+      "id": 11,
+      "name": "Occluder 2",
+      "model": "models/plane.mdl",
+      "origin": "1 0.3 1.1",
+      "scale": "0.55 0.55 1",
+      "angles": "0 0 0.25"
+    },
+    {
+      "id": 12,
+      "name": "Occluder 3",
+      "model": "models/plane.mdl",
+      "origin": "0 -1.2 0.8",
+      "scale": "0.3 0.3 1",
+      "angles": "0 0 0.5"
+    },
+    {
+      "id": 20,
+      "name": "Warm beam",
+      "light": "lspot",
+      "origin": {
+        "value": "-2.5 1.2 3",
+        "animation": {
+          "options": {
+            "fps": 30,
+            "length": 240,
+            "mode": "loop"
+          },
+          "c0": [
+            {
+              "frame": 0,
+              "value": -2.5
+            },
+            {
+              "frame": 120,
+              "value": -1.25
+            },
+            {
+              "frame": 240,
+              "value": -2.5
+            }
+          ],
+          "c1": [
+            {
+              "frame": 0,
+              "value": 1.2
+            }
+          ],
+          "c2": [
+            {
+              "frame": 0,
+              "value": 3
+            }
+          ]
+        }
+      },
+      "angles": "0 1.5707963267948966 0",
+      "radius": 20,
+      "exponent": 1,
+      "color": "1 0.33 0.12",
+      "intensity": {
+        "value": 2.4,
+        "user": "brightness"
+      },
+      "innercone": 25,
+      "outercone": {
+        "value": 65,
+        "user": "width"
+      },
+      "castshadow": {
+        "value": true,
+        "user": "shadows"
+      }
+    },
+    {
+      "id": 21,
+      "name": "Cool beam",
+      "light": "lspot",
+      "origin": {
+        "value": "2.5 1.2 3",
+        "animation": {
+          "options": {
+            "fps": 30,
+            "length": 240,
+            "mode": "loop"
+          },
+          "c0": [
+            {
+              "frame": 0,
+              "value": 2.5
+            },
+            {
+              "frame": 120,
+              "value": 1.25
+            },
+            {
+              "frame": 240,
+              "value": 2.5
+            }
+          ],
+          "c1": [
+            {
+              "frame": 0,
+              "value": 1.2
+            }
+          ],
+          "c2": [
+            {
+              "frame": 0,
+              "value": 3
+            }
+          ]
+        }
+      },
+      "angles": "0 1.5707963267948966 0",
+      "radius": 20,
+      "exponent": 1,
+      "color": "0.12 0.5 1",
+      "intensity": {
+        "value": 2.4,
+        "user": "brightness"
+      },
+      "innercone": 25,
+      "outercone": {
+        "value": 65,
+        "user": "width"
+      },
+      "castshadow": {
+        "value": true,
+        "user": "shadows"
+      }
+    }
+  ]
+}

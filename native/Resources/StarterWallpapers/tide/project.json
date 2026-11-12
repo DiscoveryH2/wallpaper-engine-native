@@ -1,0 +1,23 @@
+{
+  "title": "潮汐",
+  "type": "web",
+  "file": "index.html",
+  "preview": "preview.png",
+  "general": {
+    "properties": {
+      "speed": {
+        "type": "slider",
+        "text": "流动速度",
+        "value": 1,
+        "min": 0,
+        "max": 3,
+        "step": 0.1
+      },
+      "color": {
+        "type": "color",
+        "text": "潮汐颜色",
+        "value": "0.165 0.608 0.765"
+      }
+    }
+  }
+}
