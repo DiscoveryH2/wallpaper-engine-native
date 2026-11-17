@@ -32,9 +32,26 @@ macOS 上直接播 Wallpaper Engine 壁纸的客户端，Swift + Metal 写的原
 - 多屏热插拔、睡眠唤醒、跨 Space 切换没在所有机型上验证过。
 - 构建是 ad-hoc 签名，没有 Developer ID，也没做公证。Gatekeeper 会拦，第一次打开得右键「打开」，或者 `xattr -d com.apple.quarantine` 一下。
 
-## 从源码构建
+## 装上就能用
+
+到 [Releases](https://github.com/DiscoveryH2/wallpaper-engine-native/releases/latest) 下 `Wallpaper-Engine-Native-0.216.1-arm64.dmg`，打开把 app 拖进「应用程序」。
+
+构建是 ad-hoc 签名、没公证，第一次启动 Gatekeeper 会拦：右键点图标选「打开」，或者
+
+```sh
+xattr -d com.apple.quarantine "/Applications/Wallpaper Engine Native.app"
+```
+
+## 自己从源码编
 
 要 Apple Silicon、macOS 14+、Xcode Command Line Tools 和 Python 3。
+
+先把仓库拉下来，后面几条命令都在仓库根目录跑：
+
+```sh
+git clone https://github.com/DiscoveryH2/wallpaper-engine-native.git
+cd wallpaper-engine-native
+```
 
 先验一下仓库自带的演示素材：
 
@@ -49,6 +66,8 @@ python3 tools/bundled_wallpapers.py --verify
 ```
 
 产物会自动做 ad-hoc 签名。构建过程不联网，不下载 Steam、Wallpaper Engine 或者任何工坊内容。
+
+报 `can't open file '/Users/<你>/tools/bundled_wallpapers.py'` 就是没切进仓库目录，`cd` 进去再跑一遍。脚本按自己所在位置找素材，不用改路径。
 
 ## 许可
 
