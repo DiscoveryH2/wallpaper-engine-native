@@ -1,62 +1,57 @@
-# Wallpaper Engine Native（实验性）
+# Wallpaper Engine Native
 
-`Wallpaper Engine Native` 是一个**独立、非官方**的 macOS 原生实验项目，用于研究本地动态壁纸的浏览、预览和桌面播放。它与 Wallpaper Engine、Steam、Valve 及其关联方均无隶属、赞助或认可关系。
+macOS 上直接播 Wallpaper Engine 壁纸的客户端，Swift + Metal 写的原生程序。不跑 Wine、不做 Web 套壳，启动后读本机 Steam 里已经装好的内容。
 
-本公开源码快照仅面向 Apple Silicon（arm64）且 macOS 14 或更高版本的开发和实验用途。
+![桌面播放](docs/screenshots/desktop.jpg)
 
-## 这个仓库包含与不包含的内容
+## 能做什么
 
-包含：
+- 播 Scene、Web、Video 三类壁纸，桌面后面单开一层窗口用 Metal 渲染。
+- 接本机 Steam 和创意工坊：浏览、搜索、订阅、下载、投票、收藏，账号和下载队列都走 Steam 自己那套。
+- 多显示器各设各的壁纸，拔掉再插回来还是原来那张。
+- 壁纸库、项目详情、内置编辑器、播放列表、桌面快捷键。
 
-- 本项目的 Swift / Metal / Web / Scene 实验性播放器源码；
-- 三个由本项目制作的离线 Starter Wallpaper 演示资源（Scene、Web、Video）；
-- 用于校验这些内置演示资源的离线脚本。
+![壁纸库](docs/screenshots/library.png)
 
-不包含，也不会分发：
+## 创意工坊
 
-- Wallpaper Engine 或 Steam/Valve 的二进制文件、SDK、账户凭据；
-- Steam 创意工坊下载内容、订阅内容、预览图或其他第三方壁纸资产；
-- 任何 Windows 兼容层、第三方壁纸客户端或逆向分析材料。
+上面这张是已安装的库，下面是创意工坊页。列表、详情、订阅和「下载并设为桌面壁纸」都在同一个窗口里，走 Steam 客户端自己的登录态，所以不用在这个程序里再登一次。
 
-若尝试读取自己电脑上本地已安装的内容，使用者必须自行拥有相应 Steam、Wallpaper Engine 和内容的合法授权，并尊重每个壁纸作者的许可与使用条件。项目不提供、也不绕过购买、下载、DRM、平台或内容访问限制。
+![创意工坊](docs/screenshots/workshop.png)
 
-## 状态与限制
+## 0.216.1 修的两个问题
 
-这是一个实验性原生原型，而不是 Windows 版 Wallpaper Engine 的移植版或替代品。它不承诺对 Steam 创意工坊、所有壁纸类型、所有 Scene 脚本、特效、着色器、交互或音频响应提供兼容性，更不承诺与 Windows 版的功能或界面做到 1:1 一致。
+**Steam 连不上创意工坊。** Steam 客户端 11 月 13 日更新后，`libsteam_api.dylib` 把 `SteamUser` 接口从 v023 换成了 v024，旧的导出符号被删掉。代码里原来写死 `SteamAPI_SteamUser_v023`，`dlsym` 直接失败，订阅同步、浏览、下载、投票、收藏就一起挂了。现在改成列出这份 dylib 里实际导出的版本号，从新往旧试，`SteamUGC`、`SteamUtils`、`SteamApps` 同样处理。Steam 下次再升级也不用改代码。
 
-### 0.216.1 修复
+**选了壁纸不生效。** 0.215 加了逐显示器分配以后，在主库里手动点一张壁纸只更新了 `lastProject`，屏幕上那份分配还留着，桌面就继续播旧的。现在手动选默认壁纸时会把已连接屏幕的分配一并清掉，布局和画面在同一个提交里写下去；已经拔掉的显示器条目保留，插回来还认原来的壁纸。
 
-- **Steam 接口版本协商。** Steam 客户端 2026-11-13 的更新把 `SteamUser` 从 v023 升到 v024，并移除了旧的导出符号，因此之前写死 `SteamAPI_SteamUser_v023` 的构建会以 `Installed Steam API lacks SteamAPI_SteamUser_v023` 失败（订阅同步、工坊浏览/下载、投票、收藏全部不可用）。现在改为探测该 Steam 安装实际导出的最新 `NNN` 访问器；访问器与同一份签名 dylib 内的 `SteamAPI_ISteam*` 包装函数配套，因此不需要重新固定 ABI 版本。`SteamUGC`/`SteamUtils`/`SteamApps` 同样按此规则解析，未来版本上调不会再次写死失败。
-- **切换壁纸后桌面不变化。** 0.215 的逐显示器分配会在主库手动选择默认壁纸时继续压住该屏幕：`lastProject` 和库里的“默认”标记都更新了，桌面窗口却仍按保存的分配渲染旧壁纸。现在手动选择默认壁纸时，会在同一提交窗口内清掉**已连接**显示器的独立分配并持久化布局；断开连接的显示器条目保留，重新插上后仍恢复自己的壁纸。
-- 补完源码中未完成的截屏请求重构（`NativeDesktopWallpaperScreenshotRequest`），使 `./native/build.sh` 可以从这份快照完整编译。
+## 已知问题
 
-已知限制包括：
-
-- 仅支持 Apple Silicon / macOS 14+；Intel Mac 和更早的 macOS 不在支持范围内；
-- 对本地内容的解析与渲染覆盖有限；复杂的 Scene、Web、视频或特定 Windows 渲染路径可能无法加载、显示异常或回退；
-- 多显示器、桌面合成、Finder 图标层级、睡眠恢复与跨桌面空间等系统行为仍需在各机器上单独验证；
-- 发布构建使用 ad-hoc 签名，**没有 Developer ID 签名，也没有 Apple 公证（notarization）**。Gatekeeper 可能阻止启动；仅应由理解风险的开发测试者使用。
+- 只编了 Apple Silicon，系统要 macOS 14 起。Intel 机器没试过。
+- 复杂 Scene 的脚本、粒子、特效和自定义着色器只覆盖了一部分，缺的会降级或者干脆不显示。
+- 多屏热插拔、睡眠唤醒、跨 Space 切换没在所有机型上验证过。
+- 构建是 ad-hoc 签名，没有 Developer ID，也没做公证。Gatekeeper 会拦，第一次打开得右键「打开」，或者 `xattr -d com.apple.quarantine` 一下。
 
 ## 从源码构建
 
-前提：Apple Silicon Mac、macOS 14+、Xcode Command Line Tools（包含 `xcrun swiftc`）和 Python 3。
+要 Apple Silicon、macOS 14+、Xcode Command Line Tools 和 Python 3。
 
-先在仓库根目录验证项目自带演示资源：
+先验一下仓库自带的演示素材：
 
 ```sh
 python3 tools/bundled_wallpapers.py --verify
 ```
 
-然后构建到一个新的、绝对路径的 `.app` 输出目录：
+再编：
 
 ```sh
 ./native/build.sh --output "$PWD/out/Wallpaper Engine Native.app"
 ```
 
-脚本会编译本项目自己的辅助工具和应用，并对产物进行 ad-hoc 签名；不会下载 Steam、Wallpaper Engine 或创意工坊内容。`out/`、`native/build/` 和 `synchronizer/build/` 是本地构建输出，不应提交。
+产物会自动做 ad-hoc 签名。构建过程不联网，不下载 Steam、Wallpaper Engine 或者任何工坊内容。
 
-## 许可与贡献
+## 许可
 
-本项目的原创源码按仓库根目录的 [MIT License](LICENSE) 发布。随附的 Starter Wallpapers 是项目制作的演示资源；品牌、商标、官方程序以及任何用户自行安装或下载的内容仍归各自权利人所有。
+项目自己的代码走 MIT，见 [LICENSE](LICENSE)。仓库里的三张 Starter Wallpaper 是项目自己做的演示素材。Wallpaper Engine 和 Steam 的名字、图标归 Valve，这个项目跟 Valve 没有关系。工坊里的壁纸归各自的作者，用之前看一眼作者的授权。
 
-请在问题报告中附上 macOS 版本、芯片型号、壁纸类别和可公开分享的最小复现信息；不要上传创意工坊内容、Steam 凭据、个人目录或其他私有数据。
+提 issue 的时候带上 macOS 版本、芯片型号、壁纸类型和能公开的最小复现步骤。别贴工坊文件、Steam 凭据或者个人目录。
