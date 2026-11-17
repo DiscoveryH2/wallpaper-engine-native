@@ -1,0 +1,44 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-steam-checks:
+    # The suites compile and run arm64 binaries against a fake
+    # libsteam_api.dylib. macos-14 retired on 2026-11-02, so pin the arm64
+    # image instead of relying on macos-latest resolving to it.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify bundled demo wallpapers
+        run: python3 tools/bundled_wallpapers.py --verify
+
+      - name: Run the native Steam checks
+        run: zsh .github/run_native_checks.sh
+
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the app from a clean checkout
+        run: zsh native/build.sh
+
+      - name: Verify the built bundle
+        run: |
+          set -euo pipefail
+          app="native/build/WallpaperEngineNativeHost.app"
+          test -x "$app/Contents/MacOS/WallpaperEngineNativeHost"
+          test -f "$app/Contents/Resources/Tools/we-workshop"
+          test -f "$app/Contents/Resources/Tools/we-scene-script"
+          codesign --verify --deep --strict "$app"
+          printf 'arch=%s\n' "$(lipo -archs "$app/Contents/MacOS/WallpaperEngineNativeHost")"

@@ -27,14 +27,14 @@ macOS 上直接播 Wallpaper Engine 壁纸的客户端，Swift + Metal 写的原
 
 ## 已知问题
 
-- 只编了 Apple Silicon，系统要 macOS 14 起。Intel 机器没试过。
+- 只有 Apple Silicon 的产物，系统要 macOS 14 起。Intel Mac 跑不了，别装了白费劲。
 - 复杂 Scene 的脚本、粒子、特效和自定义着色器只覆盖了一部分，缺的会降级或者干脆不显示。
 - 多屏热插拔、睡眠唤醒、跨 Space 切换没在所有机型上验证过。
 - 构建是 ad-hoc 签名，没有 Developer ID，也没做公证。Gatekeeper 会拦，第一次打开得右键「打开」，或者 `xattr -d com.apple.quarantine` 一下。
 
 ## 装上就能用
 
-到 [Releases](https://github.com/DiscoveryH2/wallpaper-engine-native/releases/latest) 下 `Wallpaper-Engine-Native-0.216.1-arm64.dmg`，打开把 app 拖进「应用程序」。
+到 [v0.217.0](https://github.com/DiscoveryH2/wallpaper-engine-native/releases/tag/v0.217.0) 下 `Wallpaper-Engine-Native-0.217.0-arm64.dmg`，打开把 app 拖进「应用程序」。
 
 构建是 ad-hoc 签名、没公证，第一次启动 Gatekeeper 会拦：右键点图标选「打开」，或者
 
@@ -74,13 +74,18 @@ python3 tools/bundled_wallpapers.py --verify
 `synchronizer/Tests/` 下三套原生检查，每套自己编一个假的 `libsteam_api.dylib` 再跑。不碰真 Steam、不用登录、不写用户目录：
 
 ```sh
-cd synchronizer/Tests
-zsh run_steam_subscription_native_checks.sh   # 23 项
-zsh run_steam_favorite_native_checks.sh       # 34 项
-zsh run_steam_user_vote_native_checks.sh      # 79 项
+zsh .github/run_native_checks.sh
 ```
 
-每套最后打一行 JSON，`passed` 等于 `checks` 就是全过。三套都要求 arm64 + macOS 14 的 Command Line Tools。
+它会依次跑四套（订阅 23 项、收藏 34 项、投票 79 项、本地副本回收 24 项），逐套校验那行 JSON 的 `passed` 等于 `checks`，顺手确认没碰真账号、没写用户目录。单独跑某一套也行：
+
+```sh
+cd synchronizer/Tests
+zsh run_steam_user_vote_native_checks.sh      # 79 项
+zsh run_saved_workshop_reclaim_checks.sh      # 24 项，在 TMPDIR 里造一个假壁纸库
+```
+
+每次 push 和 PR 都会在 GitHub Actions 的 arm64 runner 上跑一遍这套检查，再全量编译一次；本地跑同样的命令就行。三套都要求 arm64 + macOS 14 的 Command Line Tools。
 
 `tools/steam_native_connection.swift` 是个独立的排查小工具，直接读本机 Steam 那份 `libsteam_api.dylib`，打印账号、订阅状态和下载状态，用来确认接口版本号漂没漂：
 
@@ -89,6 +94,21 @@ xcrun swift tools/steam_native_connection.swift
 ```
 
 它只读不写，不会订阅、不会请求下载。
+
+## 清理本地副本
+
+从创意工坊下载的壁纸会在 `~/Library/Application Support/WallpaperEngineNative/SavedWorkshop` 留一份本机副本，方便离线播放和续传。在 Steam 里退订之后这份副本还在，所以你可能会看到这个目录越来越大。
+
+状态栏菜单（或应用菜单）里点「清理未订阅的壁纸副本…」，它会先问 Steam 拿当前订阅列表，再检查显示器分配、配置、播放列表、应用规则有没有还指着这些副本，然后把「能删的」列出来等你点头。Steam 没回答订阅状态的时候它一份都不删。
+
+命令行同名逻辑在 `tools/reclaim_saved_workshop.swift`，默认试运行：
+
+```sh
+xcrun swiftc -O native/Sources/WallpaperEngineNativeHost/SavedWorkshopReclaim.swift \
+             tools/reclaim_saved_workshop.swift -o /tmp/we-reclaim
+/tmp/we-reclaim --helper synchronizer/build/we-workshop            # 只看会删什么
+/tmp/we-reclaim --helper synchronizer/build/we-workshop --apply    # 真删
+```
 
 ## 许可
 

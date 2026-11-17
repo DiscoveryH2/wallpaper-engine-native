@@ -2521,6 +2521,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
     private var loginItems: [NSMenuItem] = []
     private var loginSettingsItems: [NSMenuItem] = []
     private let workshop = WorkshopCoordinator()
+    private let reclaimController = NativeSavedWorkshopReclaimController()
     private var library: LibraryController?
     private struct BrowserSession {
         let configuration: LaunchConfiguration?
@@ -5158,6 +5159,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
         })
         try (request.result ?? .failure(CancellationError())).get()
     }
+    @objc private func reclaimSavedWorkshopCopies(_ sender: Any?) {
+        reclaimController.present()
+    }
     @objc private func showTransfers(_ sender: Any?) {
         if transferController == nil {
             let panel = NativeTransferController()
@@ -5304,6 +5308,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
         menu.addItem(pause); menu.addItem(resume)
         menu.addItem(item("重新加载项目", #selector(reload(_:)), "r"))
         menu.addItem(item("查看兼容情况…", #selector(showCompatibility(_:))))
+        menu.addItem(item("清理未订阅的壁纸副本…", #selector(reclaimSavedWorkshopCopies(_:))))
         menu.addItem(.separator())
         menu.addItem(makeLoginItem())
         menu.addItem(makeLoginSettingsItem())
@@ -5334,6 +5339,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
         appMenu.addItem(item("窗口预览默认壁纸", #selector(previewCurrentProject(_:)), "p"))
         appMenu.addItem(item("返回桌面显示", #selector(showCurrentProjectOnDesktop(_:)), "d"))
         appMenu.addItem(item("查看兼容情况…", #selector(showCompatibility(_:))))
+        appMenu.addItem(item("清理未订阅的壁纸副本…", #selector(reclaimSavedWorkshopCopies(_:))))
         appMenu.addItem(.separator())
         appMenu.addItem(item("暂停", #selector(pause(_:))))
         appMenu.addItem(item("继续", #selector(resume(_:))))
