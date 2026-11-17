@@ -35,7 +35,11 @@ mkdir -p "$output_dir"
 staging=$(mktemp -d "${TMPDIR:-/tmp}/we-dmg.XXXXXX")
 trap 'hdiutil detach "/Volumes/Wallpaper Engine Native $version" >/dev/null 2>&1 || true; rm -rf "$staging"' EXIT
 
-ditto "$app" "$staging/$(basename "$app")"
+# Finder shows CFBundleDisplayName, but the bundle directory name is what every
+# documented path ("/Applications/Wallpaper Engine Native.app") must match.
+bundle_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app/Contents/Info.plist")
+[[ -n "$bundle_name" ]] || { print -u2 'App has no CFBundleName'; exit 1; }
+ditto "$app" "$staging/$bundle_name.app"
 ln -s /Applications "$staging/Applications"
 
 rm -f "$dmg"
@@ -46,7 +50,7 @@ hdiutil create -quiet -volname "Wallpaper Engine Native $version" \
 # inside matches the version we packaged, then unmount.
 hdiutil attach -quiet -readonly -nobrowse "$dmg"
 mounted="/Volumes/Wallpaper Engine Native $version"
-packaged_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$mounted/$(basename "$app")/Contents/Info.plist")
+packaged_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$mounted/$bundle_name.app/Contents/Info.plist")
 [[ "$packaged_version" == "$version" ]] || { print -u2 "dmg contains $packaged_version, expected $version"; exit 1; }
 [[ -L "$mounted/Applications" ]] || { print -u2 'dmg is missing the Applications symlink'; exit 1; }
 hdiutil detach -quiet "$mounted"
