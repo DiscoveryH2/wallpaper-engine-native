@@ -12,10 +12,15 @@ enum SceneError: LocalizedError {
     }
 }
 
-// Observed directory layouts only. Real 0008 and 0023 archives use the same
-// length-prefixed paths and relative offset/size table as the earlier samples.
-// Every entry still passes the same path, size, bounds and overlap checks.
-private let scenePackageVersions: Set<String> = ["PKGV0001", "PKGV0004", "PKGV0005", "PKGV0008", "PKGV0018", "PKGV0021", "PKGV0022", "PKGV0023"]
+// Observed directory layouts only. Real 0008, 0023 and 0024 archives use the
+// same length-prefixed paths and relative offset/size table as the earlier
+// samples: a length-prefixed version tag, a u32 entry count, then
+// (path, u32 offset, u32 length) per entry with the payload immediately after
+// the table. 0024 was verified against workshop item 3832644652: 102 entries
+// tiling the payload exactly, no gaps or overlaps, textures still TEXV0005 /
+// TEXI0001. Every entry still passes the same path, size, bounds and overlap
+// checks, so an unknown-but-accepted layout still cannot read out of bounds.
+private let scenePackageVersions: Set<String> = ["PKGV0001", "PKGV0004", "PKGV0005", "PKGV0008", "PKGV0018", "PKGV0021", "PKGV0022", "PKGV0023", "PKGV0024"]
 private let textureVersionMagic = Array("TEXV0005\0".utf8)
 private let textureInfoMagic = Array("TEXI0001\0".utf8)
 private let textureBlockMagicV2 = Array("TEXB0002\0".utf8)
@@ -619,7 +624,8 @@ final class SceneAssets: @unchecked Sendable {
         var reader = SceneByteReader(archive)
         let version = try reader.readLengthPrefixedUTF8(maxBytes: 64, "PKG version")
         guard scenePackageVersions.contains(version) else {
-            throw sceneInvalid("Unsupported Scene package version: \(version)")
+            // Name what is known so a report can be acted on without guesswork.
+            throw sceneInvalid("Unsupported Scene package version: \(version)（目前认：\(scenePackageVersions.sorted().joined(separator: "、"))）")
         }
         let entryCount = try sceneInt(reader.readUInt32("PKG entry count"), "PKG entry count")
         guard entryCount <= sceneMaxLooseFiles else {

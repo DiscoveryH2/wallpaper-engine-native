@@ -34,7 +34,7 @@ macOS 上直接播 Wallpaper Engine 壁纸的客户端，Swift + Metal 写的原
 
 ## 装上就能用
 
-到 [v0.217.0](https://github.com/DiscoveryH2/wallpaper-engine-native/releases/tag/v0.217.0) 下 `Wallpaper-Engine-Native-0.217.0-arm64.dmg`，打开把 app 拖进「应用程序」。
+到 [v0.217.1](https://github.com/DiscoveryH2/wallpaper-engine-native/releases/tag/v0.217.1) 下 `Wallpaper-Engine-Native-0.217.1-arm64.dmg`，打开把 app 拖进「应用程序」。
 
 构建是 ad-hoc 签名、没公证，第一次启动 Gatekeeper 会拦：右键点图标选「打开」，或者
 
