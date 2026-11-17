@@ -24,6 +24,12 @@
 
 这是一个实验性原生原型，而不是 Windows 版 Wallpaper Engine 的移植版或替代品。它不承诺对 Steam 创意工坊、所有壁纸类型、所有 Scene 脚本、特效、着色器、交互或音频响应提供兼容性，更不承诺与 Windows 版的功能或界面做到 1:1 一致。
 
+### 0.216.1 修复
+
+- **Steam 接口版本协商。** Steam 客户端 2026-11-13 的更新把 `SteamUser` 从 v023 升到 v024，并移除了旧的导出符号，因此之前写死 `SteamAPI_SteamUser_v023` 的构建会以 `Installed Steam API lacks SteamAPI_SteamUser_v023` 失败（订阅同步、工坊浏览/下载、投票、收藏全部不可用）。现在改为探测该 Steam 安装实际导出的最新 `NNN` 访问器；访问器与同一份签名 dylib 内的 `SteamAPI_ISteam*` 包装函数配套，因此不需要重新固定 ABI 版本。`SteamUGC`/`SteamUtils`/`SteamApps` 同样按此规则解析，未来版本上调不会再次写死失败。
+- **切换壁纸后桌面不变化。** 0.215 的逐显示器分配会在主库手动选择默认壁纸时继续压住该屏幕：`lastProject` 和库里的“默认”标记都更新了，桌面窗口却仍按保存的分配渲染旧壁纸。现在手动选择默认壁纸时，会在同一提交窗口内清掉**已连接**显示器的独立分配并持久化布局；断开连接的显示器条目保留，重新插上后仍恢复自己的壁纸。
+- 补完源码中未完成的截屏请求重构（`NativeDesktopWallpaperScreenshotRequest`），使 `./native/build.sh` 可以从这份快照完整编译。
+
 已知限制包括：
 
 - 仅支持 Apple Silicon / macOS 14+；Intel Mac 和更早的 macOS 不在支持范围内；

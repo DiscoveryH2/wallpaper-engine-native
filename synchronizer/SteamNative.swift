@@ -369,11 +369,11 @@ final class SteamNativeSession {
         guard result == 0 else { throw SteamNativeError.message("Steam API initialization failed (\(result)): \(String(cString: error))") }
         initialized = true
         do {
-            user = try symbol("SteamAPI_SteamUser_v023", Interface.self)()
-            ugc = try symbol("SteamAPI_SteamUGC_v021", Interface.self)()
+            user = try interface("SteamAPI_SteamUser_v")()
+            ugc = try interface("SteamAPI_SteamUGC_v")()
             guard user != nil, ugc != nil,
-                  let utils = try symbol("SteamAPI_SteamUtils_v011", Interface.self)(),
-                  let apps = try symbol("SteamAPI_SteamApps_v009", Interface.self)() else {
+                  let utils = try interface("SteamAPI_SteamUtils_v")(),
+                  let apps = try interface("SteamAPI_SteamApps_v")() else {
                 throw SteamNativeError.message("Installed Steam API does not expose the required versioned interfaces")
             }
             account = try symbol("SteamAPI_ISteamUser_GetSteamID", ObjectUInt64.self)(user)
@@ -402,6 +402,19 @@ final class SteamNativeSession {
         guard let pointer = dlsym(handle, name) else { throw SteamNativeError.message("Installed Steam API lacks " + name) }
         return unsafeBitCast(pointer, to: type)
     }
+    /// Valve appends methods to an interface and bumps its version suffix when
+    /// it does, removing the previous accessor from the shipped dylib. The
+    /// accessor and the flat `SteamAPI_ISteam*` wrappers always come from the
+    /// same signed library, so the newest exported accessor is the one those
+    /// wrappers were compiled against. Steam's 2026-11-13 client update moved
+    /// SteamUser from v023 to v024, so resolve by probing instead of pinning.
+    private func interface(_ prefix: String) throws -> Interface {
+        for version in stride(from: 64, through: 0, by: -1) {
+            let name = String(format: "%@%03d", prefix, version)
+            if let pointer = dlsym(handle, name) { return unsafeBitCast(pointer, to: Interface.self) }
+        }
+        throw SteamNativeError.message("Installed Steam API exposes no " + prefix + "NNN accessor")
+    }
     private func requireOnline() throws {
         guard user != nil, try symbol("SteamAPI_ISteamUser_BLoggedOn", ObjectBool.self)(user) else {
             throw SteamNativeError.unavailable(code: "offline", message: "Steam is not currently connected to its account servers")
@@ -413,7 +426,7 @@ final class SteamNativeSession {
     func validateSession() throws {
         try requireOnline()
         typealias Owns = @convention(c) (UnsafeMutableRawPointer, UInt32) -> Bool
-        guard let apps = try symbol("SteamAPI_SteamApps_v009", Interface.self)(),
+        guard let apps = try interface("SteamAPI_SteamApps_v")(),
               try symbol("SteamAPI_ISteamApps_BIsSubscribedApp", Owns.self)(apps, Self.appID) else {
             throw SteamNativeError.unavailable(code: "license-unconfirmed", message: "Steam license is no longer confirmed")
         }

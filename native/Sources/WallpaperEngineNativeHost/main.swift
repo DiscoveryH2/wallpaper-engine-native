@@ -2310,6 +2310,88 @@ private final class WallpaperController {
     }
 }
 
+/// Coordinates the host-owned screenshot request that both the global hotkey
+/// and the status-item menu can start.  It deliberately receives a concrete
+/// `DesktopWindow`: `NativeHotkeyPlatformActions` then verifies the matching
+/// process-owned ScreenCaptureKit window before it can show a save panel.
+/// This is therefore never a general macOS desktop/Finder capture path.
+@MainActor
+private final class NativeDesktopWallpaperScreenshotRequest {
+    typealias Capture = @MainActor (DesktopWindow) async throws -> URL?
+    typealias StatusReporter = @MainActor (String) -> Void
+    typealias StateChangeHandler = @MainActor () -> Void
+
+    private let capture: Capture
+    private let reportStatus: StatusReporter
+    private let shouldReport: @MainActor () -> Bool
+    private let didChangeState: StateChangeHandler
+    private(set) var task: Task<Void, Never>?
+
+    init(capture: @escaping Capture,
+         reportStatus: @escaping StatusReporter,
+         shouldReport: @escaping @MainActor () -> Bool,
+         didChangeState: @escaping StateChangeHandler) {
+        self.capture = capture
+        self.reportStatus = reportStatus
+        self.shouldReport = shouldReport
+        self.didChangeState = didChangeState
+    }
+
+    var isInFlight: Bool { task != nil }
+
+    /// Preserve the existing global-hotkey target rule: the desktop window
+    /// under the pointer wins, otherwise the first currently owned window is
+    /// used.  Keeping this independent of an actual pointer makes the rule
+    /// testable without moving the user's mouse or showing a desktop window.
+    static func selectedWindow(from windows: [DesktopWindow],
+                               isUnderPointer: (DesktopWindow) -> Bool) -> DesktopWindow? {
+        windows.first(where: isUnderPointer) ?? windows.first
+    }
+
+    /// Status-menu availability is a native UI policy: disabled entries avoid
+    /// inviting an action when no live native desktop-wallpaper window exists.
+    /// Permission is intentionally *not* preflighted here; the platform action
+    /// owns its existing non-prompting permission/error behavior on activation.
+    static func hasVisibleDesktopWallpaperWindow(_ windows: [DesktopWindow]) -> Bool {
+        windows.contains { $0.isVisible && $0.windowNumber > 0 }
+    }
+
+    func request(from windows: [DesktopWindow],
+                 isUnderPointer: (DesktopWindow) -> Bool) {
+        guard task == nil else { return }
+        guard let window = Self.selectedWindow(from: windows, isUnderPointer: isUnderPointer) else {
+            reportStatus("当前没有可截取的原生桌面壁纸。")
+            return
+        }
+        let capture = capture
+        let reportStatus = reportStatus
+        let shouldReport = shouldReport
+        task = Task { [weak self] in
+            defer {
+                self?.task = nil
+                self?.didChangeState()
+            }
+            do {
+                if let url = try await capture(window), shouldReport() {
+                    reportStatus("壁纸截屏已保存：" + url.lastPathComponent)
+                }
+            } catch is CancellationError {
+                // A cancelled save panel or termination is intentionally quiet,
+                // matching the pre-existing global-hotkey behavior.
+            } catch {
+                if shouldReport() { reportStatus(error.localizedDescription) }
+            }
+        }
+        didChangeState()
+    }
+
+    func cancel() {
+        task?.cancel()
+        task = nil
+        didChangeState()
+    }
+}
+
 @MainActor
 private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, NSMenuDelegate {
     private var configuration: LaunchConfiguration?
@@ -2400,7 +2482,22 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
     private var applicationSelectionRefreshTask: Task<Void, Never>?
     private var applyingDisplayLayout = false
     private var profileHotkeyTask: Task<Void, Never>?
-    private var hotkeyPlatformTask: Task<Void, Never>?
+    private var screenshotItem: NSMenuItem?
+    /// The status-menu screenshot entry mirrors the request object: enabled
+    /// only while a live desktop window exists and no capture is in flight.
+    /// The entry is created by the status menu; this keeps it in sync without
+    /// re-running the permission path.
+    private func refreshScreenshotItem() {
+        guard let screenshotItem else { return }
+        screenshotItem.isEnabled = !desktopWallpaperScreenshot.isInFlight &&
+            NativeDesktopWallpaperScreenshotRequest.hasVisibleDesktopWallpaperWindow(controller?.hotkeyDesktopWindows ?? [])
+    }
+    private lazy var desktopWallpaperScreenshot = NativeDesktopWallpaperScreenshotRequest(
+        capture: { try await NativeHotkeyPlatformActions.shared.captureDesktopWallpaper(from: $0) },
+        reportStatus: { [weak self] status in self?.updateStatus(status) },
+        shouldReport: { [weak self] in self?.isTerminating == false },
+        didChangeState: { [weak self] in self?.refreshScreenshotItem() }
+    )
     private struct HotkeyContentRequest {
         let target: NativeHotkeyTarget
         let hotkey: NativeHotkey
@@ -2576,7 +2673,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
         guard editor?.canLeave() != false else { return .terminateCancel }
         isTerminating = true
         NativeProfileHotkeyService.shared.stop()
-        hotkeyPlatformTask?.cancel(); hotkeyPlatformTask = nil
+        desktopWallpaperScreenshot.cancel()
         let persistentDisplayProgress = displayContentContexts.values.compactMap { context -> (String, NativePlaylistPlayback?)? in
             guard context.owner == .manual, context.target.persistent else { return nil }
             return (context.target.key, context.playback)
@@ -2666,7 +2763,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
     }
     func applicationWillTerminate(_ notification: Notification) {
         NativeProfileHotkeyService.shared.stop()
-        hotkeyPlatformTask?.cancel(); hotkeyPlatformTask = nil
+        desktopWallpaperScreenshot.cancel()
         NativeDesktopIconVisibility.shared.reset()
         profileHotkeyRequestID = nil; profileHotkeyTask?.cancel(); profileHotkeyTask = nil
         playlistTimer?.invalidate(); playlistTimer = nil
@@ -3730,6 +3827,27 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
                             ? applicationRequest?.original.layout : nil)
                         let strictRuleKeys = Set(applicationRuleStrictLayout?.displays.keys.map { $0 }
                             ?? preparedProfile?.layout.displays.keys.map { $0 } ?? [])
+                        // A plain manual choice in the main library means "this is
+                        // my desktop wallpaper". A per-screen assignment left on a
+                        // connected screen would keep that screen on its old
+                        // project, so the click would look inert while the item and
+                        // lastProject moved on. Drop those overrides for this
+                        // manual commit; saved entries for disconnected screens
+                        // stay, so re-plugging a monitor restores its own art.
+                        let manualDesktopLayout: NativeDisplayLayout? = {
+                            var desktopMode = false
+                            if case .desktop = mode { desktopMode = true }
+                            guard desktopMode, !ruleRequest, playlistRequest == nil,
+                                  temporaryPlaylistRequest == nil, !startingPlaylist,
+                                  !automaticUpdate, profileRequest == nil,
+                                  hotkeyContent == nil, importing == nil else { return nil }
+                            var layout = NativeDisplayStore.load()
+                            let connected = Set(NativeDisplayDescriptor.connected().map { $0.key })
+                            let cleared = layout.displays.keys.filter { connected.contains($0) }
+                            guard !cleared.isEmpty else { return nil }
+                            for key in cleared { layout.displays.removeValue(forKey: key) }
+                            return try? layout.validated()
+                        }()
                         let candidate = WallpaperController(configuration: nextConfiguration, initiallyPaused: preserveManualPause, audioOutputAllowed: false,
                             applicationRuleOverride: applicationRequest?.selection != nil || temporaryPlaylistRequest != nil,
                             applicationRuleUsesFullLayout: ruleProfile != nil || applicationRequest?.restoring == true)
@@ -3745,7 +3863,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
                         if displaysAreSleeping { candidate.suspendForDisplaySleep() }
                         if sessionIsInactive { candidate.suspendForInactiveSession() }
                         candidate.updatePlaybackPolicy(playbackPolicy.environment)
-                        try await candidate.start(layout: ruleRequest ? applicationRuleLayout : preparedProfile.map { self.profilePresentationLayout($0.layout) },
+                        try await candidate.start(layout: ruleRequest ? applicationRuleLayout
+                                                    : (preparedProfile.map { self.profilePresentationLayout($0.layout) } ?? manualDesktopLayout),
                                                   strictKeys: strictRuleKeys) { [self] in
                             try Task.checkCancellation()
                             guard !self.isTerminating, self.openRequestID == requestID else { throw CancellationError() }
@@ -3781,6 +3900,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
                                 if let list = hotkeyContent.playlist { try NativePlaylistStore.setActive(list, target: "default") }
                             }
                             try imported?.commit()
+                            if let manualDesktopLayout {
+                                // Persist the cleared layout in the same commit
+                                // window that publishes the new renderer, so the
+                                // saved assignment can never disagree with the
+                                // visible desktop after a restart.
+                                try NativeDisplayStore.save(manualDesktopLayout)
+                                let remaining = Set(manualDesktopLayout.displays.keys)
+                                self.displayContentContexts = self.displayContentContexts.filter { remaining.contains($0.key) }
+                            }
                             if let preparedProfile {
                                 guard !self.playbackPolicy.environment.stopsDesktop else {
                                     throw PropertyError.invalid("壁纸处于停止状态，请恢复播放后重试加载配置文件。")
@@ -4946,21 +5074,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
             let hidden = NativeHotkeyPlatformActions.shared.toggleDesktopIconVisibility()
             updateStatus(hidden ? "桌面图标已隐藏。" : "桌面图标已恢复显示。")
         case .screenshot:
-            guard hotkeyPlatformTask == nil else { return }
-            let windows = controller?.hotkeyDesktopWindows ?? []
-            guard let window = windows.first(where: { $0.screen?.frame.contains(NSEvent.mouseLocation) == true }) ?? windows.first else {
-                updateStatus("当前没有可截取的原生桌面壁纸。"); return
-            }
-            hotkeyPlatformTask = Task { [weak self] in
-                guard let self else { return }
-                defer { hotkeyPlatformTask = nil }
-                do {
-                    if let url = try await NativeHotkeyPlatformActions.shared.captureDesktopWallpaper(from: window) {
-                        if !isTerminating { updateStatus("壁纸截屏已保存：" + url.lastPathComponent) }
-                    }
-                } catch is CancellationError { }
-                catch { if !isTerminating { updateStatus(error.localizedDescription) } }
-            }
+            desktopWallpaperScreenshot.request(from: controller?.hotkeyDesktopWindows ?? [],
+                                               isUnderPointer: { $0.screen?.frame.contains(NSEvent.mouseLocation) == true })
         case .screensaver:
             do { try NativeHotkeyPlatformActions.shared.startScreenSaver() }
             catch { updateStatus(error.localizedDescription) }

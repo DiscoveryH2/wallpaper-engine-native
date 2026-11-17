@@ -23,10 +23,10 @@
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>WallpaperEngineNativeHost</string>
-	<key>CFBundleIdentifier</key>
-	<string>io.wallpaper-engine-native.host</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.wallpaper-engine-native.host</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -34,9 +34,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.216.0</string>
+	<string>0.216.1</string>
 	<key>CFBundleVersion</key>
-	<string>216</string>
+	<string>217</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>NSAppleEventsUsageDescription</key>
