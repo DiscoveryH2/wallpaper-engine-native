@@ -69,6 +69,27 @@ python3 tools/bundled_wallpapers.py --verify
 
 报 `can't open file '/Users/<你>/tools/bundled_wallpapers.py'` 就是没切进仓库目录，`cd` 进去再跑一遍。脚本按自己所在位置找素材，不用改路径。
 
+## 跑测试
+
+`synchronizer/Tests/` 下三套原生检查，每套自己编一个假的 `libsteam_api.dylib` 再跑。不碰真 Steam、不用登录、不写用户目录：
+
+```sh
+cd synchronizer/Tests
+zsh run_steam_subscription_native_checks.sh   # 23 项
+zsh run_steam_favorite_native_checks.sh       # 34 项
+zsh run_steam_user_vote_native_checks.sh      # 79 项
+```
+
+每套最后打一行 JSON，`passed` 等于 `checks` 就是全过。三套都要求 arm64 + macOS 14 的 Command Line Tools。
+
+`tools/steam_native_connection.swift` 是个独立的排查小工具，直接读本机 Steam 那份 `libsteam_api.dylib`，打印账号、订阅状态和下载状态，用来确认接口版本号漂没漂：
+
+```sh
+xcrun swift tools/steam_native_connection.swift
+```
+
+它只读不写，不会订阅、不会请求下载。
+
 ## 许可
 
 项目自己的代码走 MIT，见 [LICENSE](LICENSE)。仓库里的三张 Starter Wallpaper 是项目自己做的演示素材。Wallpaper Engine 和 Steam 的名字、图标归 Valve，这个项目跟 Valve 没有关系。工坊里的壁纸归各自的作者，用之前看一眼作者的授权。
