@@ -305,6 +305,7 @@ final class NativeMetalCreationView: MTKView, NativeSceneRendering {
                         pointerInput?.completed(pointerFrame, sequence: pointerSequence)
                     }
                     completedFrames += 1; lastCompletedTime = time; lastFrameSize = size; lastGPUTime = gpuTime
+                    NativeRenderStats.shared.record(gpuSeconds: gpuTime, at: time)
                     clock.submitFirstFrame(at: ProcessInfo.processInfo.systemUptime)
                     refreshSounds()
                     updateTimer()

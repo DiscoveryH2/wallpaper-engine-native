@@ -2516,6 +2516,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
     private let projectLoadLog = Logger(subsystem: "io.wallpaper-engine-native.host", category: "ProjectLoading")
     private var builtinImportTask: Task<Void, Never>?
     private var statusItem: NSStatusItem?
+    private var lastStatusTitle = ""
+    private var renderStatsTimer: Timer?
     private var pauseItem: NSMenuItem?
     private var resumeItem: NSMenuItem?
     private var loginItems: [NSMenuItem] = []
@@ -5316,6 +5318,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
         menu.addItem(item("关于 Wallpaper Engine Native…", #selector(showApplicationInfo(_:))))
         menu.addItem(item("退出", #selector(quit(_:)), "q"))
         status.menu = menu; statusItem = status; pauseItem = pause; resumeItem = resume
+        renderStatsTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, !self.lastStatusTitle.isEmpty else { return }
+                self.updateStatus(self.lastStatusTitle)
+            }
+        }
     }
     private func buildMainMenu() {
         let menu = NSMenu()
@@ -5371,9 +5379,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemVali
     }
 
     private func updateStatus(_ title: String) {
-        fputs("Wallpaper Engine Native status: \(title)\n", stderr)
-        statusItem?.menu?.item(at: 0)?.title = title
-        library?.updateStatus(title)
+        lastStatusTitle = title
+        let stats = NativeRenderStats.shared.summary
+        let line = stats.isEmpty ? title : title + " · " + stats
+        fputs("Wallpaper Engine Native status: \(line)\n", stderr)
+        statusItem?.menu?.item(at: 0)?.title = line
+        library?.updateStatus(line)
         updateLibraryPlayback()
     }
 

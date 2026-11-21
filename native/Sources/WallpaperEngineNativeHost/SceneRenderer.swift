@@ -3215,6 +3215,7 @@ final class SceneWallpaperView: NSOpenGLView, NativeSceneRendering {
     }
 
     private func render(time: Double, width: Int, height: Int, outputWidth: Int, outputHeight: Int, outputFramebuffer: GLuint = 0) {
+        NativeRenderStats.shared.recordFrame(at: ProcessInfo.processInfo.systemUptime)
         if !sceneClock.isPaused { scripts?.publishForRendering() }
         puppetMaskPasses = 0
         currentSceneTime = time
